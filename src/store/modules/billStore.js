@@ -2,8 +2,8 @@
 import { createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
-const billStore  =   createSlice({
-  name: "billStore",
+const billStore = createSlice({
+  name: "bill",
 //   初始化状态的值
   initialState: {
     billList: [],
@@ -20,13 +20,13 @@ const { setBillList } = billStore.actions
 // 定异步函数获取数据修改状态的值
 const getBillList =()=>{
     return (dispatch)=>{
-        axios.get('http://localhost:8888/name').then(res=>{
+        axios.get('http://localhost:8888/ka').then(res=>{
             console.log(res.data)
             dispatch(setBillList(res.data))
         })
     }
 }
 
-const reducers = billStore.reducers
+const reducer = billStore.reducer
 export  {getBillList }
-export default reducers
+export default reducer
