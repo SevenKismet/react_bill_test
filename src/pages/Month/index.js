@@ -3,21 +3,17 @@ import { useState } from 'react'
 import dayjs from 'dayjs'
 import classNames from 'classnames'
 import { useSelector } from 'react-redux'
-import { useMemo } from 'react'
+import { useMemo, useEffect} from 'react'
 import _ from 'lodash'
 import './index.scss'
+import DailyBill from './components/DayBill'
 
 const Month = () => {
    const [dateVisable, setDateVisable]  = useState(false)
+   const [currentMonthList,setMonthList] = useState([])
    const [currentMonth, setCurrentMonth]  = useState(() => {
             return dayjs().format('YYYY-MM')
         })
-        // 日期确认
-    const dateConfirm = (date) => {
-        setDateVisable(false)
-        setCurrentMonth(dayjs(date).format('YYYY-MM'))
-        console.log(date)
-    }
     // 获取到存在sotre 中的数据
     const billList = useSelector(state => state.bill.billList)
     console.log(billList)
@@ -26,6 +22,42 @@ const Month = () => {
         return  _.groupBy(billList, item => dayjs(item.date).format('YYYY-MM'))
     },[billList])
     console.log(monthGroup)
+    // 日期确认
+    const dateConfirm = (date) => {
+        setDateVisable(false)
+        let formateDate = dayjs(date).format('YYYY-MM')
+        setCurrentMonth(formateDate)
+        console.log(date)
+        setMonthList(monthGroup[formateDate])
+        console.log(currentMonthList)
+    }
+    // 计算支出收入结余
+   const overView = useMemo(()=>{
+    if (!currentMonthList) return { income: 0, pay: 0, total: 0 }
+        const pay =  currentMonthList.filter(item => item.type === 'pay').reduce((sum, item) => sum + item.money, 0)
+        const income = currentMonthList.filter(item => item.type === 'income').reduce((sum, item) => sum + item.money, 0)
+        return {
+            pay, 
+            income, 
+            total: pay + income
+        }
+    },[currentMonthList])
+
+    // 当前选择的月 再按照按照日分组
+    const dayGroup = useMemo(()=>{
+        let group =  _.groupBy(currentMonthList, item => dayjs(item.date).format('YYYY-MM-DD'))
+        return {
+            daykeys: Object.keys(group),
+            group
+        }
+    },[currentMonthList])
+    // 初始化的时候调用的方法 .依赖monthGroup 的数据
+    useEffect(()=>{
+        const list = monthGroup[dayjs().format('YYYY-MM')]
+            if(list){
+               setMonthList(list)
+             }
+    },[monthGroup])
   return (
     <div className="monthlyBill">
       <NavBar className="nav" backArrow={false}>
@@ -44,18 +76,22 @@ const Month = () => {
           {/* 统计区域 */}
           <div className='twoLineOverview'>
             <div className="item">
-              <span className="money">{100}</span>
+              <span className="money">{overView.pay.toFixed(2)}</span>
               <span className="type">支出</span>
             </div>
             <div className="item">
-              <span className="money">{200}</span>
+              <span className="money">{overView.income.toFixed(2)}</span>
               <span className="type">收入</span>
             </div>
             <div className="item">
-              <span className="money">{200}</span>
+              <span className="money">{overView.total.toFixed(2)}</span>
               <span className="type">结余</span>
             </div>
           </div>
+          { dayGroup.daykeys.map(item => {
+               return <DailyBill  key={item} date={item} billList={dayGroup.group[item]} />
+          })
+            }
           {/* 时间选择器 */}
           <DatePicker
             className="kaDate"
